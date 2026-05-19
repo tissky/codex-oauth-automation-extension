@@ -13585,6 +13585,7 @@ const step10Executor = self.MultiPageBackgroundStep10?.createStep10Executor({
   ensureContentScriptReadyOnTab,
   getPanelMode,
   getTabId,
+  getStepIdByKeyForState,
   isLocalhostOAuthCallbackUrl,
   isTabAlive,
   normalizeCodex2ApiUrl,
@@ -15020,7 +15021,7 @@ async function prepareStep8DebuggerClick(tabId, options = {}) {
   const result = await sendToContentScriptResilient('signup-page', {
     type: 'STEP8_FIND_AND_CLICK',
     source: 'background',
-    payload: { visibleStep },
+    payload: { visibleStep, nodeId: 'confirm-oauth' },
   }, {
     timeoutMs,
     responseTimeoutMs,
@@ -15051,6 +15052,7 @@ async function triggerStep8ContentStrategy(tabId, strategy, options = {}) {
     type: 'STEP8_TRIGGER_CONTINUE',
     source: 'background',
     payload: {
+      nodeId: 'confirm-oauth',
       visibleStep,
       strategy,
       findTimeoutMs: 4000,
@@ -15087,7 +15089,7 @@ async function recoverAuthRetryPageOnTab(tabId, payload = {}, options = {}) {
   const result = await sendToContentScriptResilient('signup-page', {
     type: 'RECOVER_AUTH_RETRY_PAGE',
     source: 'background',
-    payload,
+    payload: { nodeId: 'confirm-oauth', ...(payload || {}) },
   }, {
     timeoutMs,
     responseTimeoutMs,
