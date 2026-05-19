@@ -57,6 +57,7 @@ const PLUS_PAYMENT_METHOD_GPC_HELPER = 'gpc-helper';
 const DEFAULT_PLUS_PAYMENT_METHOD = 'paypal';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH = 'oauth';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION = 'sub2api_codex_session';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION = 'cpa_codex_session';
 const DEFAULT_PLUS_ACCOUNT_ACCESS_STRATEGY = 'oauth';
 const GPC_HELPER_PHONE_MODE_AUTO = 'auto';
 const GPC_HELPER_PHONE_MODE_MANUAL = 'manual';
@@ -165,6 +166,33 @@ test('sidepanel enables SUB2API session strategy selection when the current Plus
   assert.match(api.plusAccountAccessStrategyCaption.textContent, /SUB2API/);
 });
 
+test('sidepanel enables CPA session strategy selection when the current Plus target supports it', () => {
+  const api = buildHarness(
+    `{
+      canShowPlusSettings: true,
+      runtimeLocks: { plusModeEnabled: true },
+      canEditPlusAccountAccessStrategy: true,
+      availablePlusAccountAccessStrategies: ['oauth', 'cpa_codex_session'],
+      effectivePanelMode: 'cpa',
+      effectivePlusAccountAccessStrategy: 'cpa_codex_session',
+    }`,
+    `{
+      activeFlowId: 'openai',
+      panelMode: 'cpa',
+      plusPaymentMethod: 'paypal',
+      plusAccountAccessStrategy: 'cpa_codex_session',
+    }`
+  );
+
+  api.updatePlusModeUI();
+
+  assert.equal(api.rowPlusAccountAccessStrategy.style.display, '');
+  assert.equal(api.selectPlusAccountAccessStrategy.disabled, false);
+  assert.equal(api.selectPlusAccountAccessStrategy.value, 'cpa_codex_session');
+  assert.equal(api.getRequestedPlusAccountAccessStrategy(), 'cpa_codex_session');
+  assert.match(api.plusAccountAccessStrategyCaption.textContent, /CPA/);
+});
+
 test('sidepanel rebuilds step definitions and workflow nodes with the effective Plus account strategy', () => {
   const bundle = [
     extractFunction('normalizeSignupMethod'),
@@ -195,6 +223,7 @@ let currentPlusModeEnabled = false;
 let currentPlusPaymentMethod = 'paypal';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH = 'oauth';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION = 'sub2api_codex_session';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION = 'cpa_codex_session';
 let currentPlusAccountAccessStrategy = 'oauth';
 let currentSignupMethod = 'email';
 let currentPhoneSignupReloginAfterBindEmailEnabled = false;
@@ -272,12 +301,20 @@ return {
 
 test('background declares Plus account access strategy constants before precomputing session-tail step definitions', () => {
   const strategyConstantIndex = backgroundSource.indexOf("const PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION = 'sub2api_codex_session';");
+  const cpaStrategyConstantIndex = backgroundSource.indexOf("const PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION = 'cpa_codex_session';");
   const precomputedSessionStepsIndex = backgroundSource.indexOf('const PLUS_PAYPAL_SUB2API_SESSION_STEP_DEFINITIONS =');
+  const precomputedCpaSessionStepsIndex = backgroundSource.indexOf('const PLUS_PAYPAL_CPA_SESSION_STEP_DEFINITIONS =');
 
   assert.ok(strategyConstantIndex >= 0, 'expected Plus account access strategy constant declaration');
+  assert.ok(cpaStrategyConstantIndex >= 0, 'expected CPA Plus account access strategy constant declaration');
   assert.ok(precomputedSessionStepsIndex >= 0, 'expected precomputed SUB2API session step definitions');
+  assert.ok(precomputedCpaSessionStepsIndex >= 0, 'expected precomputed CPA session step definitions');
   assert.ok(
     strategyConstantIndex < precomputedSessionStepsIndex,
     'strategy constant must be declared before background precomputes session-tail step definitions'
+  );
+  assert.ok(
+    cpaStrategyConstantIndex < precomputedCpaSessionStepsIndex,
+    'CPA strategy constant must be declared before background precomputes CPA session-tail step definitions'
   );
 });

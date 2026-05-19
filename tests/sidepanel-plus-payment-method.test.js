@@ -85,6 +85,7 @@ let currentPlusModeEnabled = false;
 let currentPlusPaymentMethod = 'paypal';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH = 'oauth';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION = 'sub2api_codex_session';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION = 'cpa_codex_session';
 const DEFAULT_PLUS_ACCOUNT_ACCESS_STRATEGY = PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
 let currentPlusAccountAccessStrategy = DEFAULT_PLUS_ACCOUNT_ACCESS_STRATEGY;
 let currentSignupMethod = 'email';
@@ -170,6 +171,7 @@ const GPC_HELPER_PHONE_MODE_AUTO = 'auto';
 const GPC_HELPER_PHONE_MODE_MANUAL = 'manual';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH = 'oauth';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION = 'sub2api_codex_session';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION = 'cpa_codex_session';
 const DEFAULT_PLUS_ACCOUNT_ACCESS_STRATEGY = PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
 const rowPayPalAccount = { style: { display: '' } };
 ${bundle}
@@ -229,6 +231,7 @@ const GPC_HELPER_PHONE_MODE_AUTO = 'auto';
 const GPC_HELPER_PHONE_MODE_MANUAL = 'manual';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH = 'oauth';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION = 'sub2api_codex_session';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION = 'cpa_codex_session';
 const DEFAULT_PLUS_ACCOUNT_ACCESS_STRATEGY = PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
 ${bundle}
 return {
@@ -272,6 +275,7 @@ let currentPlusModeEnabled = false;
 let currentPlusPaymentMethod = 'paypal';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH = 'oauth';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION = 'sub2api_codex_session';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION = 'cpa_codex_session';
 const DEFAULT_PLUS_ACCOUNT_ACCESS_STRATEGY = PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
 let currentPlusAccountAccessStrategy = DEFAULT_PLUS_ACCOUNT_ACCESS_STRATEGY;
 let currentSignupMethod = 'email';
@@ -330,6 +334,7 @@ const GPC_HELPER_PHONE_MODE_AUTO = 'auto';
 const GPC_HELPER_PHONE_MODE_MANUAL = 'manual';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH = 'oauth';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION = 'sub2api_codex_session';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION = 'cpa_codex_session';
 const DEFAULT_PLUS_ACCOUNT_ACCESS_STRATEGY = PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
 const plusPaymentMethodCaption = { textContent: '' };
 const btnGpcCardKeyPurchase = { style: { display: 'none' } };
@@ -432,6 +437,7 @@ const GPC_HELPER_PHONE_MODE_AUTO = 'auto';
 const GPC_HELPER_PHONE_MODE_MANUAL = 'manual';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH = 'oauth';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION = 'sub2api_codex_session';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION = 'cpa_codex_session';
 const DEFAULT_PLUS_ACCOUNT_ACCESS_STRATEGY = PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
 const plusPaymentMethodCaption = { textContent: '' };
 const btnGpcCardKeyPurchase = { style: { display: 'none' } };
@@ -495,6 +501,7 @@ const GPC_HELPER_PHONE_MODE_AUTO = 'auto';
 const GPC_HELPER_PHONE_MODE_MANUAL = 'manual';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH = 'oauth';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION = 'sub2api_codex_session';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION = 'cpa_codex_session';
 const DEFAULT_PLUS_ACCOUNT_ACCESS_STRATEGY = PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
 const plusPaymentMethodCaption = { textContent: '' };
 const rowPayPalAccount = { style: { display: '' } };
@@ -577,6 +584,7 @@ const GPC_HELPER_PHONE_MODE_AUTO = 'auto';
 const GPC_HELPER_PHONE_MODE_MANUAL = 'manual';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH = 'oauth';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION = 'sub2api_codex_session';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION = 'cpa_codex_session';
 const DEFAULT_PLUS_ACCOUNT_ACCESS_STRATEGY = PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
 const plusPaymentMethodCaption = { textContent: '' };
 const rowPayPalAccount = { style: { display: '' } };
@@ -745,6 +753,7 @@ test('sidepanel resolves pending GoPay manual confirmation from DATA_UPDATED sta
   const api = new Function(`
 const events = [];
 let latestState = {
+  activeFlowId: 'openai',
   plusManualConfirmationPending: true,
   plusManualConfirmationRequestId: 'gopay-request-1',
   plusManualConfirmationStep: 7,
@@ -799,6 +808,11 @@ return { events, syncPlusManualConfirmationDialog };
 
 test('sidepanel resolves pending GPC OTP with typed code', async () => {
   const bundle = [
+    extractFunction('normalizeSignupMethod'),
+    extractFunction('normalizePlusAccountAccessStrategy'),
+    extractFunction('normalizePlusStrategyTargetId'),
+    extractFunction('getPlusAccountAccessStrategyContinuationLabel'),
+    extractFunction('resolvePlusManualContinuationActionLabelFromState'),
     extractLastFunction('openPlusManualConfirmationDialog'),
     extractLastFunction('syncPlusManualConfirmationDialog'),
   ].join('\n');
@@ -815,6 +829,14 @@ let latestState = {
 };
 let activePlusManualConfirmationRequestId = '';
 let plusManualConfirmationDialogInFlight = false;
+const DEFAULT_ACTIVE_FLOW_ID = 'openai';
+const SIGNUP_METHOD_EMAIL = 'email';
+const SIGNUP_METHOD_PHONE = 'phone';
+const DEFAULT_SIGNUP_METHOD = 'email';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH = 'oauth';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION = 'sub2api_codex_session';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION = 'cpa_codex_session';
+const DEFAULT_PLUS_ACCOUNT_ACCESS_STRATEGY = 'oauth';
 const sharedFormDialog = {
   async open(options) {
     events.push({ type: 'form', options });

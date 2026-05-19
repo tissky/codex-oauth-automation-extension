@@ -99,3 +99,15 @@ test('settings schema can project canonical state into a read view without legac
   assert.equal(view.settingsSchemaVersion, 4);
   assert.equal(view.settingsState.activeFlowId, 'kiro');
 });
+
+test('settings schema preserves CPA session strategy in canonical state and read view', () => {
+  const { settingsSchema } = loadApis();
+  const schema = settingsSchema.createSettingsSchema();
+  const normalized = schema.normalizeSettingsState({
+    plusAccountAccessStrategy: 'cpa_codex_session',
+  });
+  const view = schema.buildSettingsView(normalized);
+
+  assert.equal(normalized.flows.openai.plus.plusAccountAccessStrategy, 'cpa_codex_session');
+  assert.equal(view.plusAccountAccessStrategy, 'cpa_codex_session');
+});

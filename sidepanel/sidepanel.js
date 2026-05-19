@@ -547,6 +547,7 @@ const GPC_HELPER_PHONE_MODE_MANUAL = 'manual';
 const DEFAULT_PLUS_PAYMENT_METHOD = PLUS_PAYMENT_METHOD_PAYPAL;
 const PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH = 'oauth';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION = 'sub2api_codex_session';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION = 'cpa_codex_session';
 const DEFAULT_PLUS_ACCOUNT_ACCESS_STRATEGY = PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
 const SIGNUP_METHOD_EMAIL = 'email';
 const SIGNUP_METHOD_PHONE = 'phone';
@@ -2853,9 +2854,13 @@ function normalizePlusPaymentMethod(value = '') {
 
 function normalizePlusAccountAccessStrategy(value = '') {
   const normalized = String(value || '').trim().toLowerCase();
-  return normalized === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION
-    ? PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION
-    : PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
+  if (normalized === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION) {
+    return PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION;
+  }
+  if (normalized === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION) {
+    return PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION;
+  }
+  return PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
 }
 
 function getSelectedPlusPaymentMethod(state = latestState) {
@@ -2884,6 +2889,58 @@ function getRequestedPlusAccountAccessStrategy(state = latestState) {
     return normalizePlusAccountAccessStrategy(selectPlusAccountAccessStrategy.value || fallbackStrategy);
   }
   return fallbackStrategy;
+}
+
+function normalizePlusStrategyTargetId(value = '') {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'sub2api') {
+    return 'sub2api';
+  }
+  if (normalized === 'codex2api') {
+    return 'codex2api';
+  }
+  return 'cpa';
+}
+
+function getPlusAccountAccessStrategyContinuationLabel(strategy = '', targetId = '') {
+  const normalizedStrategy = normalizePlusAccountAccessStrategy(strategy);
+  if (normalizedStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION) {
+    return '导入当前 ChatGPT 会话到 SUB2API';
+  }
+  if (normalizedStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION) {
+    return '导入当前 ChatGPT 会话到 CPA';
+  }
+  return 'OAuth 登录';
+}
+
+function getPlusAccountAccessStrategyDescription(strategy = '', targetId = '') {
+  const normalizedStrategy = normalizePlusAccountAccessStrategy(strategy);
+  const normalizedTargetId = normalizePlusStrategyTargetId(targetId);
+  if (normalizedStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION) {
+    return '复用当前 Plus 已登录会话，直接导入到 SUB2API';
+  }
+  if (normalizedStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION) {
+    return '复用当前 Plus 已登录会话，直接导入到 CPA';
+  }
+  if (normalizedTargetId === 'sub2api') {
+    return '通过 OAuth 回调创建 SUB2API 账号';
+  }
+  if (normalizedTargetId === 'codex2api') {
+    return '通过 OAuth 回调创建 Codex2API 账号';
+  }
+  return '通过 OAuth 回调创建 CPA 账号';
+}
+
+function resolvePlusManualContinuationActionLabelFromState(state = latestState) {
+  const activeFlowId = String(state?.activeFlowId || state?.flowId || DEFAULT_ACTIVE_FLOW_ID).trim().toLowerCase();
+  const signupMethod = normalizeSignupMethod(state?.resolvedSignupMethod || state?.signupMethod || DEFAULT_SIGNUP_METHOD);
+  const plusModeEnabled = state?.plusModeEnabled === undefined ? true : Boolean(state?.plusModeEnabled);
+  const targetId = normalizePlusStrategyTargetId(state?.panelMode || state?.openaiIntegrationTargetId || 'cpa');
+  const strategy = normalizePlusAccountAccessStrategy(state?.plusAccountAccessStrategy || DEFAULT_PLUS_ACCOUNT_ACCESS_STRATEGY);
+  const effectiveStrategy = plusModeEnabled && activeFlowId === DEFAULT_ACTIVE_FLOW_ID && signupMethod === SIGNUP_METHOD_EMAIL
+    ? strategy
+    : PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
+  return getPlusAccountAccessStrategyContinuationLabel(effectiveStrategy, targetId);
 }
 
 function normalizeGpcHelperPhoneModeValue(value = '') {
@@ -9000,7 +9057,41 @@ function updatePlusModeUI() {
   const sub2apiSessionStrategyValue = typeof PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION !== 'undefined'
     ? PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION
     : 'sub2api_codex_session';
+  const cpaSessionStrategyValue = typeof PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION !== 'undefined'
+    ? PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION
+    : 'cpa_codex_session';
   const defaultMethod = typeof DEFAULT_PLUS_PAYMENT_METHOD !== 'undefined' ? DEFAULT_PLUS_PAYMENT_METHOD : paypalValue;
+  const resolveStrategyTargetId = typeof normalizePlusStrategyTargetId === 'function'
+    ? normalizePlusStrategyTargetId
+    : ((value = '') => {
+      const normalized = String(value || '').trim().toLowerCase();
+      if (normalized === 'sub2api') {
+        return 'sub2api';
+      }
+      if (normalized === 'codex2api') {
+        return 'codex2api';
+      }
+      return 'cpa';
+    });
+  const describePlusAccountAccessStrategy = typeof getPlusAccountAccessStrategyDescription === 'function'
+    ? getPlusAccountAccessStrategyDescription
+    : ((strategy = '', targetId = '') => {
+      const normalizedStrategy = normalizePlusAccountAccessStrategy(strategy);
+      const normalizedTargetId = resolveStrategyTargetId(targetId);
+      if (normalizedStrategy === sub2apiSessionStrategyValue) {
+        return '复用当前 Plus 已登录会话，直接导入到 SUB2API';
+      }
+      if (normalizedStrategy === cpaSessionStrategyValue) {
+        return '复用当前 Plus 已登录会话，直接导入到 CPA';
+      }
+      if (normalizedTargetId === 'sub2api') {
+        return '通过 OAuth 回调创建 SUB2API 账号';
+      }
+      if (normalizedTargetId === 'codex2api') {
+        return '通过 OAuth 回调创建 Codex2API 账号';
+      }
+      return '通过 OAuth 回调创建 CPA 账号';
+    });
   const requestedPlusAccountAccessStrategy = typeof getRequestedPlusAccountAccessStrategy === 'function'
     ? getRequestedPlusAccountAccessStrategy(latestState)
     : normalizePlusAccountAccessStrategy(latestState?.plusAccountAccessStrategy || DEFAULT_PLUS_ACCOUNT_ACCESS_STRATEGY);
@@ -9038,9 +9129,20 @@ function updatePlusModeUI() {
     : true;
   const enabled = supportsPlusMode && rawEnabled;
   const canEditPlusAccountAccessStrategy = Boolean(capabilityState?.canEditPlusAccountAccessStrategy);
+  const availablePlusAccountAccessStrategies = Array.isArray(capabilityState?.availablePlusAccountAccessStrategies)
+    && capabilityState.availablePlusAccountAccessStrategies.length > 0
+    ? capabilityState.availablePlusAccountAccessStrategies
+    : [oauthStrategyValue];
   const effectivePlusAccountAccessStrategy = capabilityState?.effectivePlusAccountAccessStrategy
     || requestedPlusAccountAccessStrategy
     || oauthStrategyValue;
+  const effectiveTargetId = resolveStrategyTargetId(
+    capabilityState?.effectivePanelMode
+    || capabilityState?.effectiveTargetId
+    || capabilityState?.panelMode
+    || (typeof getSelectedPanelMode === 'function' ? getSelectedPanelMode() : latestState?.panelMode)
+    || 'cpa'
+  );
   const method = enabled ? getSelectedPlusPaymentMethod() : defaultMethod;
   const gpcPhoneMode = normalizeGpcHelperPhoneModeValue(
     typeof selectGpcHelperPhoneMode !== 'undefined' && selectGpcHelperPhoneMode
@@ -9103,6 +9205,13 @@ function updatePlusModeUI() {
     row.style.display = enabled ? '' : 'none';
   });
   if (typeof selectPlusAccountAccessStrategy !== 'undefined' && selectPlusAccountAccessStrategy) {
+    const availableStrategySet = new Set(availablePlusAccountAccessStrategies);
+    Array.from(selectPlusAccountAccessStrategy.options || []).forEach((option) => {
+      const optionValue = normalizePlusAccountAccessStrategy(option?.value || '');
+      const optionSupported = availableStrategySet.has(optionValue);
+      option.hidden = enabled ? !optionSupported : false;
+      option.disabled = enabled ? !optionSupported : false;
+    });
     selectPlusAccountAccessStrategy.dataset.requestedValue = requestedPlusAccountAccessStrategy;
     selectPlusAccountAccessStrategy.value = effectivePlusAccountAccessStrategy;
     selectPlusAccountAccessStrategy.disabled = !enabled || !canEditPlusAccountAccessStrategy;
@@ -9120,6 +9229,24 @@ function updatePlusModeUI() {
     } else {
       plusAccountAccessStrategyCaption.textContent = '当前来源仅支持 OAuth';
     }
+  }
+  if (typeof plusAccountAccessStrategyCaption !== 'undefined' && plusAccountAccessStrategyCaption) {
+    if (!enabled || !canEditPlusAccountAccessStrategy) {
+      plusAccountAccessStrategyCaption.textContent = '当前来源仅支持 OAuth';
+    } else {
+      plusAccountAccessStrategyCaption.textContent = describePlusAccountAccessStrategy(
+        effectivePlusAccountAccessStrategy,
+        effectiveTargetId
+      );
+    }
+  }
+  if (typeof plusAccountAccessStrategyCaption !== 'undefined' && plusAccountAccessStrategyCaption) {
+    plusAccountAccessStrategyCaption.textContent = !enabled || !canEditPlusAccountAccessStrategy
+      ? '当前来源仅支持 OAuth'
+      : describePlusAccountAccessStrategy(
+        effectivePlusAccountAccessStrategy,
+        effectiveTargetId
+      );
   }
   [
     typeof rowPayPalAccount !== 'undefined' ? rowPayPalAccount : null,
@@ -9648,6 +9775,60 @@ async function syncPlusManualConfirmationDialog() {
       }, 0);
     }
   }
+}
+async function openPlusManualConfirmationDialog(options = {}) {
+  const method = String(options.method || '').trim().toLowerCase();
+  const gopayValue = typeof PLUS_PAYMENT_METHOD_GOPAY !== 'undefined' ? PLUS_PAYMENT_METHOD_GOPAY : 'gopay';
+  const continuationActionLabel = resolvePlusManualContinuationActionLabelFromState(latestState);
+  if (method === 'gopay-otp') {
+    if (!sharedFormDialog?.open) {
+      return null;
+    }
+    const result = await sharedFormDialog.open({
+      title: String(options.title || '').trim() || 'GPC OTP 验证',
+      message: String(options.message || '').trim() || '请在WhatsApp里面获取验证码（耐心等待三十秒左右）',
+      fields: [
+        {
+          key: 'otp',
+          label: 'OTP',
+          type: 'text',
+          placeholder: '请输入 OTP 验证码',
+          inputMode: 'numeric',
+          autocomplete: 'one-time-code',
+          required: true,
+          requiredMessage: '请输入 OTP 验证码。',
+          normalize: (value) => String(value || '').trim().replace(/[^\d]/g, ''),
+          validate: (value) => {
+            const normalized = String(value || '').trim().replace(/[^\d]/g, '');
+            if (!normalized) return '请输入 OTP 验证码。';
+            if (!/^\d{6}$/.test(normalized)) return 'OTP 必须是 6 位数字，请检查。';
+            return '';
+          },
+        },
+      ],
+      confirmLabel: '提交 OTP',
+    });
+    return result
+      ? { action: 'confirm', otp: String(result.otp || '').trim().replace(/[^\d]/g, '') }
+      : { action: 'cancel' };
+  }
+
+  const title = String(options.title || '').trim() || (method === gopayValue ? 'GoPay subscription confirmation' : 'Manual confirmation');
+  const message = String(options.message || '').trim()
+    || (method === gopayValue
+      ? 'Complete the GoPay subscription on the current page, then continue.'
+      : 'Finish the current manual action on the page, then continue.');
+  return openActionModal({
+    title,
+    message,
+    actions: [
+      { id: 'cancel', label: 'Cancel', variant: 'btn-ghost' },
+      { id: 'confirm', label: 'Continue', variant: 'btn-primary' },
+    ],
+    alert: method === gopayValue
+      ? { text: `After confirmation, the Plus flow will continue with ${continuationActionLabel}.`, tone: 'info' }
+      : null,
+  });
 }
 
 async function clearRegistrationEmail(options = {}) {

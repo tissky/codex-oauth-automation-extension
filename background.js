@@ -21,6 +21,7 @@ importScripts(
   'background/ip-proxy-provider-711proxy.js',
   'background/ip-proxy-core.js',
   'background/sub2api-api.js',
+  'background/cpa-api.js',
   'background/panel-bridge.js',
   'background/registration-email-state.js',
   'background/workflow-engine.js',
@@ -56,6 +57,7 @@ importScripts(
   'background/steps/gopay-approve.js',
   'background/steps/plus-return-confirm.js',
   'background/steps/sub2api-session-import.js',
+  'background/steps/cpa-session-import.js',
   'background/steps/oauth-login.js',
   'background/steps/fetch-login-code.js',
   'background/steps/confirm-oauth.js',
@@ -77,6 +79,7 @@ importScripts(
 const DEFAULT_ACTIVE_FLOW_ID = 'openai';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH = 'oauth';
 const PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION = 'sub2api_codex_session';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION = 'cpa_codex_session';
 const NORMAL_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
   activeFlowId: DEFAULT_ACTIVE_FLOW_ID,
   plusModeEnabled: false,
@@ -103,6 +106,12 @@ const PLUS_PAYPAL_SUB2API_SESSION_STEP_DEFINITIONS = self.MultiPageStepDefinitio
   plusPaymentMethod: 'paypal',
   plusAccountAccessStrategy: PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION,
 }) || PLUS_PAYPAL_STEP_DEFINITIONS;
+const PLUS_PAYPAL_CPA_SESSION_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
+  activeFlowId: DEFAULT_ACTIVE_FLOW_ID,
+  plusModeEnabled: true,
+  plusPaymentMethod: 'paypal',
+  plusAccountAccessStrategy: PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION,
+}) || PLUS_PAYPAL_STEP_DEFINITIONS;
 const PLUS_PAYPAL_PHONE_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
   activeFlowId: DEFAULT_ACTIVE_FLOW_ID,
   plusModeEnabled: true,
@@ -127,6 +136,12 @@ const PLUS_GOPAY_SUB2API_SESSION_STEP_DEFINITIONS = self.MultiPageStepDefinition
   plusPaymentMethod: 'gopay',
   plusAccountAccessStrategy: PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION,
 }) || PLUS_GOPAY_STEP_DEFINITIONS;
+const PLUS_GOPAY_CPA_SESSION_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
+  activeFlowId: DEFAULT_ACTIVE_FLOW_ID,
+  plusModeEnabled: true,
+  plusPaymentMethod: 'gopay',
+  plusAccountAccessStrategy: PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION,
+}) || PLUS_GOPAY_STEP_DEFINITIONS;
 const PLUS_GOPAY_PHONE_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
   activeFlowId: DEFAULT_ACTIVE_FLOW_ID,
   plusModeEnabled: true,
@@ -150,6 +165,12 @@ const PLUS_GPC_SUB2API_SESSION_STEP_DEFINITIONS = self.MultiPageStepDefinitions?
   plusModeEnabled: true,
   plusPaymentMethod: 'gpc-helper',
   plusAccountAccessStrategy: PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION,
+}) || PLUS_GPC_STEP_DEFINITIONS;
+const PLUS_GPC_CPA_SESSION_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
+  activeFlowId: DEFAULT_ACTIVE_FLOW_ID,
+  plusModeEnabled: true,
+  plusPaymentMethod: 'gpc-helper',
+  plusAccountAccessStrategy: PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION,
 }) || PLUS_GPC_STEP_DEFINITIONS;
 const PLUS_GPC_PHONE_STEP_DEFINITIONS = self.MultiPageStepDefinitions?.getSteps?.({
   activeFlowId: DEFAULT_ACTIVE_FLOW_ID,
@@ -187,14 +208,17 @@ const ALL_STEP_DEFINITIONS = (() => {
     ...NORMAL_PHONE_BOUND_EMAIL_RELOGIN_STEP_DEFINITIONS,
     ...PLUS_PAYPAL_STEP_DEFINITIONS,
     ...PLUS_PAYPAL_SUB2API_SESSION_STEP_DEFINITIONS,
+    ...PLUS_PAYPAL_CPA_SESSION_STEP_DEFINITIONS,
     ...PLUS_PAYPAL_PHONE_STEP_DEFINITIONS,
     ...PLUS_PAYPAL_PHONE_BOUND_EMAIL_RELOGIN_STEP_DEFINITIONS,
     ...PLUS_GOPAY_STEP_DEFINITIONS,
     ...PLUS_GOPAY_SUB2API_SESSION_STEP_DEFINITIONS,
+    ...PLUS_GOPAY_CPA_SESSION_STEP_DEFINITIONS,
     ...PLUS_GOPAY_PHONE_STEP_DEFINITIONS,
     ...PLUS_GOPAY_PHONE_BOUND_EMAIL_RELOGIN_STEP_DEFINITIONS,
     ...PLUS_GPC_STEP_DEFINITIONS,
     ...PLUS_GPC_SUB2API_SESSION_STEP_DEFINITIONS,
+    ...PLUS_GPC_CPA_SESSION_STEP_DEFINITIONS,
     ...PLUS_GPC_PHONE_STEP_DEFINITIONS,
     ...PLUS_GPC_PHONE_BOUND_EMAIL_RELOGIN_STEP_DEFINITIONS,
   ];
@@ -830,6 +854,12 @@ function getStepDefinitionsForState(state = {}) {
     ) {
       return PLUS_GPC_SUB2API_SESSION_STEP_DEFINITIONS;
     }
+    if (
+      signupMethod === SIGNUP_METHOD_EMAIL
+      && plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION
+    ) {
+      return PLUS_GPC_CPA_SESSION_STEP_DEFINITIONS;
+    }
     return PLUS_GPC_STEP_DEFINITIONS;
   }
   if (paymentMethod === PLUS_PAYMENT_METHOD_GOPAY) {
@@ -839,6 +869,12 @@ function getStepDefinitionsForState(state = {}) {
     ) {
       return PLUS_GOPAY_SUB2API_SESSION_STEP_DEFINITIONS;
     }
+    if (
+      signupMethod === SIGNUP_METHOD_EMAIL
+      && plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION
+    ) {
+      return PLUS_GOPAY_CPA_SESSION_STEP_DEFINITIONS;
+    }
     return PLUS_GOPAY_STEP_DEFINITIONS;
   }
   if (
@@ -846,6 +882,12 @@ function getStepDefinitionsForState(state = {}) {
     && plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION
   ) {
     return PLUS_PAYPAL_SUB2API_SESSION_STEP_DEFINITIONS;
+  }
+  if (
+    signupMethod === SIGNUP_METHOD_EMAIL
+    && plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION
+  ) {
+    return PLUS_PAYPAL_CPA_SESSION_STEP_DEFINITIONS;
   }
   return PLUS_PAYPAL_STEP_DEFINITIONS;
 }
@@ -1798,9 +1840,13 @@ function normalizePlusPaymentMethod(value = '') {
 
 function normalizePlusAccountAccessStrategy(value = '') {
   const normalized = String(value || '').trim().toLowerCase();
-  return normalized === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION
-    ? PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION
-    : PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
+  if (normalized === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION) {
+    return PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION;
+  }
+  if (normalized === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION) {
+    return PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION;
+  }
+  return PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
 }
 
 function normalizeFiveSimCountryId(value, fallback = FIVE_SIM_COUNTRY_ID) {
@@ -2977,9 +3023,7 @@ function normalizePersistentSettingValue(key, value) {
     case 'plusPaymentMethod':
       return normalizePlusPaymentMethod(value);
     case 'plusAccountAccessStrategy':
-      return String(value || '').trim().toLowerCase() === 'sub2api_codex_session'
-        ? 'sub2api_codex_session'
-        : 'oauth';
+      return normalizePlusAccountAccessStrategy(value);
     case 'paypalEmail':
       return String(value || '').trim();
     case 'paypalPassword':
@@ -10361,6 +10405,7 @@ const AUTO_RUN_BACKGROUND_COMPLETED_STEP_KEYS = new Set([
   'paypal-approve',
   'plus-checkout-return',
   'sub2api-session-import',
+  'cpa-session-import',
   'oauth-login',
   'fetch-login-code',
   'post-login-phone-verification',
@@ -11460,6 +11505,7 @@ const AUTO_RUN_NODE_DELAYS = Object.freeze({
   'paypal-approve': 2000,
   'plus-checkout-return': 1000,
   'sub2api-session-import': 0,
+  'cpa-session-import': 0,
   'oauth-login': 2000,
   'fetch-login-code': 2000,
   'confirm-oauth': 1000,
@@ -13280,6 +13326,19 @@ const sub2ApiSessionImportExecutor = self.MultiPageBackgroundSub2ApiSessionImpor
   waitForTabCompleteUntilStopped,
   DEFAULT_SUB2API_GROUP_NAME,
 });
+const cpaSessionImportExecutor = self.MultiPageBackgroundCpaSessionImport?.createCpaSessionImportExecutor({
+  addLog,
+  chrome,
+  completeNodeFromBackground,
+  ensureContentScriptReadyOnTabUntilStopped,
+  getTabId,
+  isTabAlive,
+  registerTab,
+  sendTabMessageUntilStopped,
+  sleepWithStop,
+  throwIfStopped,
+  waitForTabCompleteUntilStopped,
+});
 const kiroRegisterRunner = self.MultiPageBackgroundKiroRegisterRunner?.createKiroRegisterRunner({
   addLog,
   chrome,
@@ -13429,6 +13488,7 @@ const stepExecutorsByKey = {
     : payPalApproveExecutor.executePayPalApprove(state),
   'plus-checkout-return': (state) => plusReturnConfirmExecutor.executePlusReturnConfirm(state),
   'sub2api-session-import': (state) => sub2ApiSessionImportExecutor.executeSub2ApiSessionImport(state),
+  'cpa-session-import': (state) => cpaSessionImportExecutor.executeCpaSessionImport(state),
   'oauth-login': (state) => step7Executor.executeStep7(state),
   'fetch-login-code': (state) => step8Executor.executeStep8(state),
   'post-login-phone-verification': (state) => step8Executor.executePostLoginPhoneVerification(state),

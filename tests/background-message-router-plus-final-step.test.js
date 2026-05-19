@@ -173,3 +173,33 @@ test('message router appends success record when SUB2API session import is the f
   assert.equal(appendCalls.length, 1);
   assert.equal(appendCalls[0][0], 'success');
 });
+
+test('message router appends success record when CPA session import is the final Plus node', async () => {
+  const { appendCalls, router } = createRouterWithFinalNode({
+    finalNodeId: 'cpa-session-import',
+    nodeIds: [
+      'open-chatgpt',
+      'plus-checkout-create',
+      'plus-checkout-billing',
+      'paypal-approve',
+      'plus-checkout-return',
+      'cpa-session-import',
+    ],
+    nodeStepMap: {
+      'plus-checkout-create': 6,
+      'plus-checkout-billing': 7,
+      'paypal-approve': 8,
+      'plus-checkout-return': 9,
+      'cpa-session-import': 10,
+    },
+  });
+
+  await router.handleMessage({
+    type: 'NODE_COMPLETE',
+    nodeId: 'cpa-session-import',
+    payload: { nodeId: 'cpa-session-import' },
+  }, {});
+
+  assert.equal(appendCalls.length, 1);
+  assert.equal(appendCalls[0][0], 'success');
+});

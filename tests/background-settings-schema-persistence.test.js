@@ -111,6 +111,10 @@ const PERSISTED_SETTING_KEYS = Object.keys(PERSISTED_SETTING_DEFAULTS);
 const PERSISTED_SETTINGS_SCHEMA_KEYS = ['settingsSchemaVersion', 'settingsState'];
 const LEGACY_AUTO_STEP_DELAY_KEYS = [];
 const LEGACY_VERIFICATION_RESEND_COUNT_KEYS = [];
+const PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH = 'oauth';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION = 'sub2api_codex_session';
+const PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION = 'cpa_codex_session';
+const DEFAULT_PLUS_ACCOUNT_ACCESS_STRATEGY = PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
 function isPlainObjectValue(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
@@ -125,6 +129,7 @@ function normalizePlusPaymentMethod(value = '') {
   const normalized = String(value || '').trim().toLowerCase();
   return normalized === 'gopay' || normalized === 'gpc-helper' ? normalized : 'paypal';
 }
+${extractFunction('normalizePlusAccountAccessStrategy')}
 function normalizeSub2ApiGroupNames(value) {
   return Array.isArray(value) ? value.map((entry) => String(entry || '').trim()).filter(Boolean) : [];
 }

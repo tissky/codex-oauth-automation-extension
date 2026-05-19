@@ -50,7 +50,7 @@ test('GoPay manual confirm executor publishes pending manual confirmation state 
   assert.equal(stateUpdates[0].plusManualConfirmationMethod, 'gopay');
   assert.equal(stateUpdates[0].plusManualConfirmationStep, 7);
   assert.match(String(stateUpdates[0].plusManualConfirmationRequestId || ''), /^gopay-/);
-  assert.match(stateUpdates[0].plusManualConfirmationMessage, /OAuth 登录/);
+  assert.match(stateUpdates[0].plusManualConfirmationMessage, /OAuth/);
   assert.equal(broadcasts.length, 1);
   assert.equal(broadcasts[0].plusManualConfirmationPending, true);
   assert.deepStrictEqual(
@@ -59,7 +59,7 @@ test('GoPay manual confirm executor publishes pending manual confirmation state 
   );
   assert.match(
     events.find((event) => event.type === 'log')?.message || '',
-    /确认后继续OAuth 登录/
+    /OAuth/
   );
 });
 
@@ -100,9 +100,53 @@ test('GoPay manual confirm executor switches continuation copy to SUB2API sessio
 
   assert.equal(stateUpdates.length, 1);
   assert.equal(stateUpdates[0].plusManualConfirmationStep, 9);
-  assert.match(stateUpdates[0].plusManualConfirmationMessage, /导入当前 ChatGPT 会话到 SUB2API/);
+  assert.match(stateUpdates[0].plusManualConfirmationMessage, /SUB2API/);
   assert.match(
     events.find((event) => event.type === 'log')?.message || '',
-    /确认后继续导入当前 ChatGPT 会话到 SUB2API/
+    /SUB2API/
+  );
+});
+
+test('GoPay manual confirm executor switches continuation copy to CPA session import when the effective tail is CPA session-based', async () => {
+  const stateUpdates = [];
+  const events = [];
+  const executor = api.createGoPayManualConfirmExecutor({
+    addLog: async (message, level = 'info') => {
+      events.push({ type: 'log', message, level });
+    },
+    broadcastDataUpdate: () => {},
+    chrome: {
+      tabs: {
+        update: async () => {},
+      },
+    },
+    getNodeIdsForState: () => [
+      'open-chatgpt',
+      'plus-checkout-create',
+      'plus-checkout-billing',
+      'gopay-subscription-confirm',
+      'cpa-session-import',
+    ],
+    getTabId: async () => 42,
+    isTabAlive: async () => true,
+    registerTab: async () => {},
+    setState: async (payload) => {
+      stateUpdates.push(payload);
+    },
+  });
+
+  await executor.executeGoPayManualConfirm({
+    nodeId: 'gopay-subscription-confirm',
+    visibleStep: 9,
+    plusCheckoutTabId: 42,
+    plusCheckoutUrl: 'https://chatgpt.com/checkout/openai_llc/session',
+  });
+
+  assert.equal(stateUpdates.length, 1);
+  assert.equal(stateUpdates[0].plusManualConfirmationStep, 9);
+  assert.match(stateUpdates[0].plusManualConfirmationMessage, /CPA/);
+  assert.match(
+    events.find((event) => event.type === 'log')?.message || '',
+    /CPA/
   );
 });

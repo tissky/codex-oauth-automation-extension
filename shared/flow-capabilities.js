@@ -10,6 +10,7 @@
   const SIGNUP_METHOD_PHONE = 'phone';
   const PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH = 'oauth';
   const PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION = 'sub2api_codex_session';
+  const PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION = 'cpa_codex_session';
   const VALID_OPENAI_TARGET_IDS = Array.isArray(flowRegistryApi.OPENAI_TARGET_IDS)
     ? flowRegistryApi.OPENAI_TARGET_IDS.slice()
     : ['cpa', 'sub2api', 'codex2api'];
@@ -71,7 +72,10 @@
     cpa: Object.freeze({
       supportsPhoneSignup: true,
       requiresPhoneSignupWarning: true,
-      supportedPlusAccountAccessStrategies: Object.freeze([PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH]),
+      supportedPlusAccountAccessStrategies: Object.freeze([
+        PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH,
+        PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION,
+      ]),
     }),
     sub2api: Object.freeze({
       supportsPhoneSignup: true,
@@ -127,9 +131,14 @@
   }
 
   function normalizePlusAccountAccessStrategy(value = '') {
-    return String(value || '').trim().toLowerCase() === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION
-      ? PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION
-      : PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION) {
+      return PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION;
+    }
+    if (normalized === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION) {
+      return PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION;
+    }
+    return PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
   }
 
   function normalizeOpenAiTargetList(values = []) {
@@ -618,6 +627,7 @@
     OPENAI_TARGET_CAPABILITIES,
     PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH,
     PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION,
+    PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION,
     SIGNUP_METHOD_EMAIL,
     SIGNUP_METHOD_PHONE,
     VALID_OPENAI_TARGET_IDS,

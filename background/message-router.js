@@ -593,15 +593,41 @@
     }
 
     function normalizePlusAccountAccessStrategyForDisplay(value = '') {
-      return String(value || '').trim().toLowerCase() === 'sub2api_codex_session'
-        ? 'sub2api_codex_session'
-        : 'oauth';
+      const normalized = String(value || '').trim().toLowerCase();
+      if (normalized === 'sub2api_codex_session') {
+        return 'sub2api_codex_session';
+      }
+      if (normalized === 'cpa_codex_session') {
+        return 'cpa_codex_session';
+      }
+      return 'oauth';
     }
 
     function getPlusAccountAccessStrategyLabel(value = '') {
       return normalizePlusAccountAccessStrategyForDisplay(value) === 'sub2api_codex_session'
         ? '导入当前 ChatGPT 会话到 SUB2API'
         : 'OAuth';
+    }
+
+    function getPlusAccountAccessStrategyLabel(value = '', targetId = '') {
+      const strategy = normalizePlusAccountAccessStrategyForDisplay(value);
+      const normalizedTargetId = String(targetId || '').trim().toLowerCase();
+      if (strategy === 'sub2api_codex_session') {
+        return '导入当前 ChatGPT 会话到 SUB2API';
+      }
+      if (strategy === 'cpa_codex_session') {
+        return '导入当前 ChatGPT 会话到 CPA';
+      }
+      if (normalizedTargetId === 'cpa') {
+        return '通过 OAuth 回调创建 CPA 账号';
+      }
+      if (normalizedTargetId === 'sub2api') {
+        return '通过 OAuth 回调创建 SUB2API 账号';
+      }
+      if (normalizedTargetId === 'codex2api') {
+        return '通过 OAuth 回调创建 Codex2API 账号';
+      }
+      return 'OAuth';
     }
 
     async function handlePlatformVerifyStepData(payload) {
@@ -1561,7 +1587,12 @@
               stateUpdates.plusPaymentMethod ?? currentState?.plusPaymentMethod ?? 'paypal'
             );
             const selectedPlusAccountAccessStrategy = getPlusAccountAccessStrategyLabel(
-              stateUpdates.plusAccountAccessStrategy ?? currentState?.plusAccountAccessStrategy ?? 'oauth'
+              stateUpdates.plusAccountAccessStrategy ?? currentState?.plusAccountAccessStrategy ?? 'oauth',
+              stateUpdates.panelMode
+                ?? currentState?.panelMode
+                ?? stateUpdates.openaiIntegrationTargetId
+                ?? currentState?.openaiIntegrationTargetId
+                ?? 'cpa'
             );
             await addLog(
               Boolean(updates.plusModeEnabled)
@@ -1576,7 +1607,12 @@
             await addLog(`Plus 支付方式已切换为 ${selectedPlusPaymentMethod}，已更新对应的 Plus 步骤。`, 'info');
           } else if (plusAccountAccessStrategyChanged && nextPlusModeEnabled) {
             const selectedPlusAccountAccessStrategy = getPlusAccountAccessStrategyLabel(
-              stateUpdates.plusAccountAccessStrategy ?? currentState?.plusAccountAccessStrategy ?? 'oauth'
+              stateUpdates.plusAccountAccessStrategy ?? currentState?.plusAccountAccessStrategy ?? 'oauth',
+              stateUpdates.panelMode
+                ?? currentState?.panelMode
+                ?? stateUpdates.openaiIntegrationTargetId
+                ?? currentState?.openaiIntegrationTargetId
+                ?? 'cpa'
             );
             await addLog(`Plus 账号接入策略已切换为 ${selectedPlusAccountAccessStrategy}，已更新对应的 Plus 尾链。`, 'info');
           }

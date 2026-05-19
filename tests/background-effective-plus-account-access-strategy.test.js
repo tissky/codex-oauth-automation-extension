@@ -59,14 +59,25 @@ const workflowEngine = null;
 const self = {
   MultiPageStepDefinitions: {
     getSteps(options = {}) {
-      return String(options.plusAccountAccessStrategy || '').trim() === 'sub2api_codex_session'
-        ? [
+      const strategy = String(options.plusAccountAccessStrategy || '').trim();
+      if (strategy === 'sub2api_codex_session') {
+        return [
           { id: 1, key: 'open-chatgpt' },
           { id: 2, key: 'plus-checkout-create' },
           { id: 3, key: 'plus-checkout-billing' },
           { id: 4, key: 'paypal-approve' },
           { id: 5, key: 'plus-checkout-return' },
           { id: 6, key: 'sub2api-session-import' },
+        ];
+      }
+      return strategy === 'cpa_codex_session'
+        ? [
+          { id: 1, key: 'open-chatgpt' },
+          { id: 2, key: 'plus-checkout-create' },
+          { id: 3, key: 'plus-checkout-billing' },
+          { id: 4, key: 'paypal-approve' },
+          { id: 5, key: 'plus-checkout-return' },
+          { id: 6, key: 'cpa-session-import' },
         ]
         : [
           { id: 1, key: 'open-chatgpt' },
@@ -96,17 +107,26 @@ function normalizePlusPaymentMethod(value = '') {
   return normalized === 'gopay' || normalized === 'gpc-helper' ? normalized : 'paypal';
 }
 function normalizePlusAccountAccessStrategy(value = '') {
-  return String(value || '').trim().toLowerCase() === 'sub2api_codex_session'
-    ? 'sub2api_codex_session'
-    : 'oauth';
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'sub2api_codex_session') {
+    return 'sub2api_codex_session';
+  }
+  if (normalized === 'cpa_codex_session') {
+    return 'cpa_codex_session';
+  }
+  return 'oauth';
 }
 function isPlusModeState(state = {}) {
   return Boolean(state?.plusModeEnabled);
 }
 function resolveCurrentFlowCapabilities(state = {}, options = {}) {
-  const effectiveStrategy = String(options.panelMode || '').trim().toLowerCase() === 'sub2api'
-    ? normalizePlusAccountAccessStrategy(state.plusAccountAccessStrategy)
-    : 'oauth';
+  const normalizedPanelMode = String(options.panelMode || '').trim().toLowerCase();
+  const requestedStrategy = normalizePlusAccountAccessStrategy(state.plusAccountAccessStrategy);
+  const effectiveStrategy = normalizedPanelMode === 'sub2api'
+    ? (requestedStrategy === 'sub2api_codex_session' ? 'sub2api_codex_session' : 'oauth')
+    : (normalizedPanelMode === 'cpa'
+      ? (requestedStrategy === 'cpa_codex_session' ? 'cpa_codex_session' : 'oauth')
+      : 'oauth');
   return {
     effectivePanelMode: options.panelMode,
     effectivePlusAccountAccessStrategy: effectiveStrategy,
@@ -156,6 +176,32 @@ test('background step resolution keeps SUB2API session tail only when the effect
     'paypal-approve',
     'plus-checkout-return',
     'sub2api-session-import',
+  ]);
+});
+
+test('background step resolution keeps CPA session tail when the effective Plus target supports it', () => {
+  const api = createHarness();
+  const state = {
+    activeFlowId: 'openai',
+    flowId: 'openai',
+    panelMode: 'cpa',
+    plusModeEnabled: true,
+    plusPaymentMethod: 'paypal',
+    plusAccountAccessStrategy: 'cpa_codex_session',
+    signupMethod: 'email',
+  };
+
+  const resolvedState = api.buildResolvedStepDefinitionState(state);
+  const nodeIds = api.getNodeIdsForState(state);
+
+  assert.equal(resolvedState.plusAccountAccessStrategy, 'cpa_codex_session');
+  assert.deepStrictEqual(nodeIds, [
+    'open-chatgpt',
+    'plus-checkout-create',
+    'plus-checkout-billing',
+    'paypal-approve',
+    'plus-checkout-return',
+    'cpa-session-import',
   ]);
 });
 

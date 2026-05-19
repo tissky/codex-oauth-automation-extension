@@ -601,5 +601,5 @@ test('background wires sub2api session import executor into the workflow runtime
   const source = fs.readFileSync('background.js', 'utf8');
   assert.match(source, /background\/steps\/sub2api-session-import\.js/);
   assert.match(source, /'sub2api-session-import': \(state\) => sub2ApiSessionImportExecutor\.executeSub2ApiSessionImport\(state\)/);
-  assert.match(source, /'sub2api-session-import',\s*\n\s*'oauth-login'/);
+  assert.match(source, /'sub2api-session-import',[\s\S]*'oauth-login'/);
 });

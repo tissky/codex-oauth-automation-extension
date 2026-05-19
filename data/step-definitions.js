@@ -7,6 +7,7 @@
   const PLUS_PAYMENT_METHOD_GPC_HELPER = 'gpc-helper';
   const PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH = 'oauth';
   const PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION = 'sub2api_codex_session';
+  const PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION = 'cpa_codex_session';
   const PLUS_PAYMENT_STEP_KEY = 'paypal-approve';
   const SIGNUP_METHOD_EMAIL = 'email';
   const SIGNUP_METHOD_PHONE = 'phone';
@@ -110,21 +111,51 @@
     ];
   }
 
-  function normalizePlusAccountAccessStrategy(value = '') {
-    return String(value || '').trim().toLowerCase() === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION
-      ? PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION
-      : PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
+  function createCpaSessionImportTail(startId, startOrder) {
+    const id = Number(startId) || 10;
+    const order = Number(startOrder) || id * 10;
+    return [
+      {
+        id,
+        order,
+        key: 'cpa-session-import',
+        title: '导入当前 ChatGPT 会话到 CPA',
+        sourceId: 'vps-panel',
+        driverId: 'background/cpa-session-import',
+        command: 'cpa-session-import',
+      },
+    ];
   }
 
-  function shouldUseSub2ApiSessionImportTail(options = {}, signupMethod = SIGNUP_METHOD_EMAIL) {
-    return signupMethod === SIGNUP_METHOD_EMAIL
-      && normalizePlusAccountAccessStrategy(options?.plusAccountAccessStrategy)
-        === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION;
+  function normalizePlusAccountAccessStrategy(value = '') {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION) {
+      return PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION;
+    }
+    if (normalized === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION) {
+      return PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION;
+    }
+    return PLUS_ACCOUNT_ACCESS_STRATEGY_OAUTH;
+  }
+
+  function resolvePlusSessionImportTail(options = {}, signupMethod = SIGNUP_METHOD_EMAIL) {
+    if (signupMethod !== SIGNUP_METHOD_EMAIL) {
+      return null;
+    }
+    const strategy = normalizePlusAccountAccessStrategy(options?.plusAccountAccessStrategy);
+    if (strategy === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION) {
+      return createSub2ApiSessionImportTail;
+    }
+    if (strategy === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION) {
+      return createCpaSessionImportTail;
+    }
+    return null;
   }
 
   function createOpenAiSteps(prefixSteps, startId, startOrder, signupMethod = SIGNUP_METHOD_EMAIL, options = {}) {
-    const tailSteps = shouldUseSub2ApiSessionImportTail(options, signupMethod)
-      ? createSub2ApiSessionImportTail(startId, startOrder)
+    const sessionTailFactory = resolvePlusSessionImportTail(options, signupMethod);
+    const tailSteps = sessionTailFactory
+      ? sessionTailFactory(startId, startOrder)
       : createOpenAiAuthTail(startId, startOrder, signupMethod, options);
     return [
       ...prefixSteps,
@@ -143,6 +174,13 @@
     SIGNUP_METHOD_EMAIL,
     { plusAccountAccessStrategy: PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION }
   );
+  const PLUS_PAYPAL_CPA_SESSION_STEP_DEFINITIONS = createOpenAiSteps(
+    PLUS_PAYPAL_PREFIX_STEP_DEFINITIONS,
+    10,
+    100,
+    SIGNUP_METHOD_EMAIL,
+    { plusAccountAccessStrategy: PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION }
+  );
   const PLUS_PAYPAL_PHONE_STEP_DEFINITIONS = createOpenAiSteps(PLUS_PAYPAL_PREFIX_STEP_DEFINITIONS, 10, 100, SIGNUP_METHOD_PHONE);
   const PLUS_PAYPAL_PHONE_BOUND_EMAIL_RELOGIN_STEP_DEFINITIONS = createOpenAiSteps(PLUS_PAYPAL_PREFIX_STEP_DEFINITIONS, 10, 100, SIGNUP_METHOD_PHONE, { phoneSignupReloginAfterBindEmailEnabled: true });
   const PLUS_GOPAY_STEP_DEFINITIONS = createOpenAiSteps(PLUS_GOPAY_PREFIX_STEP_DEFINITIONS, 10, 100, SIGNUP_METHOD_EMAIL);
@@ -153,6 +191,13 @@
     SIGNUP_METHOD_EMAIL,
     { plusAccountAccessStrategy: PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION }
   );
+  const PLUS_GOPAY_CPA_SESSION_STEP_DEFINITIONS = createOpenAiSteps(
+    PLUS_GOPAY_PREFIX_STEP_DEFINITIONS,
+    10,
+    100,
+    SIGNUP_METHOD_EMAIL,
+    { plusAccountAccessStrategy: PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION }
+  );
   const PLUS_GOPAY_PHONE_STEP_DEFINITIONS = createOpenAiSteps(PLUS_GOPAY_PREFIX_STEP_DEFINITIONS, 10, 100, SIGNUP_METHOD_PHONE);
   const PLUS_GOPAY_PHONE_BOUND_EMAIL_RELOGIN_STEP_DEFINITIONS = createOpenAiSteps(PLUS_GOPAY_PREFIX_STEP_DEFINITIONS, 10, 100, SIGNUP_METHOD_PHONE, { phoneSignupReloginAfterBindEmailEnabled: true });
   const PLUS_GPC_STEP_DEFINITIONS = createOpenAiSteps(PLUS_GPC_PREFIX_STEP_DEFINITIONS, 10, 100, SIGNUP_METHOD_EMAIL);
@@ -162,6 +207,13 @@
     100,
     SIGNUP_METHOD_EMAIL,
     { plusAccountAccessStrategy: PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION }
+  );
+  const PLUS_GPC_CPA_SESSION_STEP_DEFINITIONS = createOpenAiSteps(
+    PLUS_GPC_PREFIX_STEP_DEFINITIONS,
+    10,
+    100,
+    SIGNUP_METHOD_EMAIL,
+    { plusAccountAccessStrategy: PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION }
   );
   const PLUS_GPC_PHONE_STEP_DEFINITIONS = createOpenAiSteps(PLUS_GPC_PREFIX_STEP_DEFINITIONS, 10, 100, SIGNUP_METHOD_PHONE);
   const PLUS_GPC_PHONE_BOUND_EMAIL_RELOGIN_STEP_DEFINITIONS = createOpenAiSteps(PLUS_GPC_PREFIX_STEP_DEFINITIONS, 10, 100, SIGNUP_METHOD_PHONE, { phoneSignupReloginAfterBindEmailEnabled: true });
@@ -308,6 +360,9 @@
       if (plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION) {
         return PLUS_GPC_SUB2API_SESSION_STEP_DEFINITIONS;
       }
+      if (plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION) {
+        return PLUS_GPC_CPA_SESSION_STEP_DEFINITIONS;
+      }
       return PLUS_GPC_STEP_DEFINITIONS;
     }
     if (paymentMethod === PLUS_PAYMENT_METHOD_GOPAY) {
@@ -319,6 +374,9 @@
       if (plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION) {
         return PLUS_GOPAY_SUB2API_SESSION_STEP_DEFINITIONS;
       }
+      if (plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION) {
+        return PLUS_GOPAY_CPA_SESSION_STEP_DEFINITIONS;
+      }
       return PLUS_GOPAY_STEP_DEFINITIONS;
     }
     if (signupMethod === SIGNUP_METHOD_PHONE) {
@@ -328,6 +386,9 @@
     }
     if (plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_SUB2API_CODEX_SESSION) {
       return PLUS_PAYPAL_SUB2API_SESSION_STEP_DEFINITIONS;
+    }
+    if (plusAccountAccessStrategy === PLUS_ACCOUNT_ACCESS_STRATEGY_CPA_CODEX_SESSION) {
+      return PLUS_PAYPAL_CPA_SESSION_STEP_DEFINITIONS;
     }
     return PLUS_PAYPAL_STEP_DEFINITIONS;
   }
@@ -364,14 +425,17 @@
           ...NORMAL_PHONE_BOUND_EMAIL_RELOGIN_STEP_DEFINITIONS,
           ...PLUS_PAYPAL_STEP_DEFINITIONS,
           ...PLUS_PAYPAL_SUB2API_SESSION_STEP_DEFINITIONS,
+          ...PLUS_PAYPAL_CPA_SESSION_STEP_DEFINITIONS,
           ...PLUS_PAYPAL_PHONE_STEP_DEFINITIONS,
           ...PLUS_PAYPAL_PHONE_BOUND_EMAIL_RELOGIN_STEP_DEFINITIONS,
           ...PLUS_GOPAY_STEP_DEFINITIONS,
           ...PLUS_GOPAY_SUB2API_SESSION_STEP_DEFINITIONS,
+          ...PLUS_GOPAY_CPA_SESSION_STEP_DEFINITIONS,
           ...PLUS_GOPAY_PHONE_STEP_DEFINITIONS,
           ...PLUS_GOPAY_PHONE_BOUND_EMAIL_RELOGIN_STEP_DEFINITIONS,
           ...PLUS_GPC_STEP_DEFINITIONS,
           ...PLUS_GPC_SUB2API_SESSION_STEP_DEFINITIONS,
+          ...PLUS_GPC_CPA_SESSION_STEP_DEFINITIONS,
           ...PLUS_GPC_PHONE_STEP_DEFINITIONS,
           ...PLUS_GPC_PHONE_BOUND_EMAIL_RELOGIN_STEP_DEFINITIONS,
         ]) {

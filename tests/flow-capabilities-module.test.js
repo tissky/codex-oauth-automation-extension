@@ -216,7 +216,7 @@ test('flow capability registry exposes editable Plus account access strategies f
   assert.equal(capabilityState.stepDefinitionOptions.plusAccountAccessStrategy, 'sub2api_codex_session');
 });
 
-test('flow capability registry preserves requested Plus account strategy while forcing OAuth on unsupported targets', () => {
+test('flow capability registry exposes editable Plus account access strategies for CPA', () => {
   const api = loadApi();
   const registry = api.createFlowCapabilityRegistry();
 
@@ -226,12 +226,36 @@ test('flow capability registry preserves requested Plus account strategy while f
       openaiIntegrationTargetId: 'cpa',
       signupMethod: 'email',
       plusModeEnabled: true,
-      plusAccountAccessStrategy: 'sub2api_codex_session',
+      plusAccountAccessStrategy: 'cpa_codex_session',
+    },
+  });
+
+  assert.deepEqual(
+    capabilityState.availablePlusAccountAccessStrategies,
+    ['oauth', 'cpa_codex_session']
+  );
+  assert.equal(capabilityState.requestedPlusAccountAccessStrategy, 'cpa_codex_session');
+  assert.equal(capabilityState.effectivePlusAccountAccessStrategy, 'cpa_codex_session');
+  assert.equal(capabilityState.canEditPlusAccountAccessStrategy, true);
+  assert.equal(capabilityState.stepDefinitionOptions.plusAccountAccessStrategy, 'cpa_codex_session');
+});
+
+test('flow capability registry forces OAuth when the current target only supports OAuth', () => {
+  const api = loadApi();
+  const registry = api.createFlowCapabilityRegistry();
+
+  const capabilityState = registry.resolveSidepanelCapabilities({
+    state: {
+      activeFlowId: 'openai',
+      openaiIntegrationTargetId: 'codex2api',
+      signupMethod: 'email',
+      plusModeEnabled: true,
+      plusAccountAccessStrategy: 'cpa_codex_session',
     },
   });
 
   assert.deepEqual(capabilityState.availablePlusAccountAccessStrategies, ['oauth']);
-  assert.equal(capabilityState.requestedPlusAccountAccessStrategy, 'sub2api_codex_session');
+  assert.equal(capabilityState.requestedPlusAccountAccessStrategy, 'cpa_codex_session');
   assert.equal(capabilityState.effectivePlusAccountAccessStrategy, 'oauth');
   assert.equal(capabilityState.canEditPlusAccountAccessStrategy, false);
   assert.equal(capabilityState.stepDefinitionOptions.plusAccountAccessStrategy, 'oauth');

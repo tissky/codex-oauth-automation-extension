@@ -47,11 +47,16 @@
     const normalizeTargetId = typeof flowRegistry.normalizeTargetId === 'function'
       ? flowRegistry.normalizeTargetId
       : ((_flowId, value = '', fallback = '') => String(value || fallback || '').trim().toLowerCase());
-    const normalizePlusAccountAccessStrategy = (value = '') => (
-      String(value || '').trim().toLowerCase() === 'sub2api_codex_session'
-        ? 'sub2api_codex_session'
-        : 'oauth'
-    );
+    const normalizePlusAccountAccessStrategy = (value = '') => {
+      const normalized = String(value || '').trim().toLowerCase();
+      if (normalized === 'sub2api_codex_session') {
+        return 'sub2api_codex_session';
+      }
+      if (normalized === 'cpa_codex_session') {
+        return 'cpa_codex_session';
+      }
+      return 'oauth';
+    };
 
     function buildDefaultSettingsState() {
       return {

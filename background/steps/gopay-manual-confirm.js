@@ -4,12 +4,26 @@
   const PLUS_CHECKOUT_SOURCE = 'plus-checkout';
   const GOPAY_CONFIRM_NODE_ID = 'gopay-subscription-confirm';
   const SUB2API_SESSION_IMPORT_NODE_ID = 'sub2api-session-import';
+  const CPA_SESSION_IMPORT_NODE_ID = 'cpa-session-import';
   const DEFAULT_CONFIRM_TITLE = 'GoPay 订阅确认';
   const OAUTH_CONTINUATION_LABEL = 'OAuth 登录';
   const SUB2API_SESSION_CONTINUATION_LABEL = '导入当前 ChatGPT 会话到 SUB2API';
 
+  const CPA_SESSION_CONTINUATION_LABEL = '导入当前 ChatGPT 会话到 CPA';
+
   function normalizeString(value = '') {
     return String(value || '').trim();
+  }
+
+  function getContinuationActionLabelForNodeId(nodeId = '') {
+    const normalizedNodeId = normalizeString(nodeId);
+    if (normalizedNodeId === SUB2API_SESSION_IMPORT_NODE_ID) {
+      return SUB2API_SESSION_CONTINUATION_LABEL;
+    }
+    if (normalizedNodeId === CPA_SESSION_IMPORT_NODE_ID) {
+      return CPA_SESSION_CONTINUATION_LABEL;
+    }
+    return OAUTH_CONTINUATION_LABEL;
   }
 
   function getContinuationActionLabel(state = {}, options = {}) {
@@ -24,11 +38,16 @@
         ? normalizeString(nodeIds[currentNodeIndex + 1])
         : '';
 
-      if (
-        nextNodeId === SUB2API_SESSION_IMPORT_NODE_ID
-        || (currentNodeIndex < 0 && nodeIds.includes(SUB2API_SESSION_IMPORT_NODE_ID))
-      ) {
-        return SUB2API_SESSION_CONTINUATION_LABEL;
+      if (nextNodeId) {
+        return getContinuationActionLabelForNodeId(nextNodeId);
+      }
+      if (currentNodeIndex < 0) {
+        if (nodeIds.includes(SUB2API_SESSION_IMPORT_NODE_ID)) {
+          return SUB2API_SESSION_CONTINUATION_LABEL;
+        }
+        if (nodeIds.includes(CPA_SESSION_IMPORT_NODE_ID)) {
+          return CPA_SESSION_CONTINUATION_LABEL;
+        }
       }
     }
     return OAUTH_CONTINUATION_LABEL;
